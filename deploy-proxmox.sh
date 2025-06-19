@@ -7,7 +7,38 @@ set -e
 # Configuration
 REPO_URL="https://github.com/dmytro-vasyliev/audio_book_converter.git"
 DEPLOY_DIR="/opt/audiobook-converter"
-WEBHOOK_SECRET="$(openssl rand -hex 20)"  # Generate a secure random string
+
+# Parse command line arguments
+COMMIT_OR_TAG=""
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -c|--commit)
+            COMMIT_OR_TAG="$2"
+            shift 2
+            ;;
+        -t|--tag)
+            COMMIT_OR_TAG="$2"
+            shift 2
+            ;;
+        -h|--help)
+            echo "Usage: $0 [-c|--commit COMMIT_HASH] [-t|--tag TAG_NAME]"
+            echo "Deploy Audio Book Converter to the server"
+            echo ""
+            echo "Options:"
+            echo "  -c, --commit COMMIT_HASH   Deploy specific commit hash"
+            echo "  -t, --tag TAG_NAME        Deploy specific tag"
+            echo "  -h, --help                Show this help message"
+            echo ""
+            echo "If no commit or tag is specified, the latest main branch will be deployed."
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Run '$0 --help' for usage information"
+            exit 1
+            ;;
+    esac
+done
 
 # Create deployment directory if it doesn't exist
 mkdir -p $DEPLOY_DIR
@@ -16,13 +47,24 @@ cd $DEPLOY_DIR
 echo "=== Audio Book Converter Deployment ==="
 echo "Deploying to: $DEPLOY_DIR"
 
-# Check if repository exists, clone or pull
-if [ -d ".git" ]; then
-    echo "Repository exists, pulling latest changes..."
-    git pull
-else
+# Clone repository if it doesn't exist
+if [ ! -d ".git" ]; then
     echo "Cloning repository..."
     git clone $REPO_URL .
+fi
+
+# Fetch latest changes
+echo "Fetching latest changes..."
+git fetch --all
+git fetch --tags
+
+# Checkout specific version if provided
+if [ -z "$COMMIT_OR_TAG" ]; then
+    echo "Checking out latest version from main branch..."
+    git checkout main
+else
+    echo "Checking out specific version: $COMMIT_OR_TAG..."
+    git checkout $COMMIT_OR_TAG
 fi
 
 # Build and start Docker containers
@@ -31,73 +73,15 @@ docker-compose down
 docker-compose build --no-cache
 docker-compose up -d
 
-echo "=== Deployment complete ==="
-echo "The Audio Book Converter is now running at http://$(hostname -I | awk '{print $1}'):7860"
+echo ""
+echo "=== Deployment Complete ==="
+echo ""
+echo "Audio Book Converter is now running!"
+echo "You can access it at: http://$(hostname -I | awk '{print $1}'):7860"
 
-# Optional: Set up a simple webhook listener for automatic updates
-echo """
-To set up automatic updates:
-
-1. Create a GitHub webhook in your repository:
-   - URL: http://your-server-ip:9000/webhook
-   - Content type: application/json
-   - Secret: $WEBHOOK_SECRET
-
-2. Run the webhook listener in a screen or tmux session:
-   
-   screen -S webhook
-   python -c '
-import http.server
-import hmac
-import hashlib
-import json
-import os
-import subprocess
-
-class WebhookHandler(http.server.BaseHTTPRequestHandler):
-    def do_POST(self):
-        if self.path != \"/webhook\":
-            self.send_response(404)
-            self.end_headers()
-            return
-
-        length = int(self.headers[\"Content-Length\"])
-        payload = self.rfile.read(length)
-        signature = self.headers.get(\"X-Hub-Signature-256\", \"\")
-        
-        # Verify signature
-        if not signature.startswith(\"sha256=\"):
-            self.send_response(400)
-            self.end_headers()
-            return
-            
-        secret = \"$WEBHOOK_SECRET\".encode()
-        computed = \"sha256=\" + hmac.new(secret, payload, hashlib.sha256).hexdigest()
-        
-        if not hmac.compare_digest(signature, computed):
-            self.send_response(403)
-            self.end_headers()
-            return
-            
-        # Process webhook
-        try:
-            event = json.loads(payload)
-            if event.get(\"ref\") == \"refs/heads/main\":
-                print(\"Received push to main, deploying...\")
-                subprocess.run([\"/bin/bash\", \"$DEPLOY_DIR/deploy-proxmox.sh\"])
-                
-            self.send_response(200)
-            self.end_headers()
-            self.wfile.write(b\"OK\")
-        except Exception as e:
-            print(f\"Error: {e}\")
-            self.send_response(500)
-            self.end_headers()
-            
-print(\"Starting webhook listener on port 9000...\")
-server = http.server.HTTPServer((\"\", 9000), WebhookHandler)
-server.serve_forever()
-   '
-   
-   # Press Ctrl+A, D to detach from screen
-"""
+# Display deployed version info
+echo ""
+echo "=== Deployed Version Information ==="
+echo "Commit: $(git rev-parse HEAD)"
+echo "Date: $(git log -1 --format=%cd --date=local)"
+echo "Message: $(git log -1 --format=%s)"
