@@ -1,0 +1,17 @@
+version: '3'
+
+services:
+  audiobook-converter:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: audiobook-converter
+    ports:
+      - "7860:7860"  # Expose Gradio web interface
+    volumes:
+      - ./data:/app/data  # Optional: mount a data directory for persisting converted files
+    restart: unless-stopped
+    environment:
+      # Optional environment variables for configuration
+      - GRADIO_SERVER_NAME=0.0.0.0
+      - GRADIO_SERVER_PORT=7860
