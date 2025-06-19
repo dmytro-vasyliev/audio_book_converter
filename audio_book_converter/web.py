@@ -1,4 +1,5 @@
 import os
+import logging
 import tempfile
 import shutil
 import zipfile
@@ -83,7 +84,8 @@ def process_with_progress(file_path, segment_time: int = 300):
     
     # Copy the converted files to the persistent directory
     converted_files = []
-    for mp3_file in sorted(output_dir.glob("*.mp3")):
+    # Only get files matching our current naming format to avoid showing files from previous conversions
+    for mp3_file in sorted(output_dir.glob("[0-9][0-9][0-9]_*.mp3")):
         # Copy the file to our persistent directory
         dest_file = persistent_dir / mp3_file.name
         shutil.copy2(mp3_file, dest_file)
