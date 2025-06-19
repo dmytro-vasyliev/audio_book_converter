@@ -62,6 +62,7 @@ git fetch --tags
 if [ -z "$COMMIT_OR_TAG" ]; then
     echo "Checking out latest version from main branch..."
     git checkout main
+    git pull --rebase origin main
 else
     echo "Checking out specific version: $COMMIT_OR_TAG..."
     git checkout $COMMIT_OR_TAG
