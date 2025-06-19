@@ -5,10 +5,9 @@
 set -e
 
 # Configuration
-APP_NAME="audiobook-converter"
-REPO_URL="https://github.com/yourusername/audio_book_converter.git"
+REPO_URL="https://github.com/dmytro-vasyliev/audio_book_converter.git"
 DEPLOY_DIR="/opt/audiobook-converter"
-WEBHOOK_SECRET="change_this_to_a_secure_random_string"
+WEBHOOK_SECRET="$(openssl rand -hex 20)"  # Generate a secure random string
 
 # Create deployment directory if it doesn't exist
 mkdir -p $DEPLOY_DIR
