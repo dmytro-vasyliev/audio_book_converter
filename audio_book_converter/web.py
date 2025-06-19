@@ -17,21 +17,31 @@ OUTPUT_DIR = Path(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) /
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 
-def create_zip_archive(files: List[str]) -> str:
+def create_zip_archive(files: List[str], original_filename: str = None) -> str:
     """Create a zip archive containing all the converted files.
     
     Args:
         files: List of file paths to include in the archive
+        original_filename: Name of the original input file to use in the zip name
         
     Returns:
         Path to the created zip archive
     """
     if not files:
         return ""
-        
-    # Create a timestamp for the zip filename
+    
+    # Create a zip filename based on the original file name if provided
     timestamp = time.strftime("%Y%m%d-%H%M%S")
-    zip_path = str(OUTPUT_DIR / f"audiobook_mp3s_{timestamp}.zip")
+    
+    if original_filename and original_filename.strip():
+        # Extract just the base name without extension
+        base_name = os.path.splitext(os.path.basename(original_filename))[0]
+        zip_name = f"{base_name}_mp3s.zip"
+    else:
+        # Fallback to the timestamp-based name if no original filename
+        zip_name = f"audiobook_mp3s_{timestamp}.zip"
+    
+    zip_path = str(OUTPUT_DIR / zip_name)
     
     # Create the zip file
     with zipfile.ZipFile(zip_path, 'w') as zipf:
@@ -94,7 +104,9 @@ def process_with_progress(file_path, segment_time: int = 300):
     # Create a zip archive of all the output files
     zip_path = ""
     if converted_files:
-        zip_path = create_zip_archive(converted_files)
+        # Extract the original filename to use for the zip
+        original_filename = os.path.basename(file_path) if file_path else None
+        zip_path = create_zip_archive(converted_files, original_filename)
         
     # Calculate final elapsed time
     elapsed = time.time() - start_time
