@@ -118,14 +118,14 @@ def create_interface():
             outputs=[output_files, status]
         )
         
-        # Example usage
-        gr.Examples(
-            examples=[[None, 300]],
-            inputs=[file_input, segment_time],
-            outputs=[output_files, status],
-            fn=lambda x, y: [[], "Upload a file to convert"],
-            cache_examples=False,
-        )
+        # Add some descriptive text instead of problematic examples
+        gr.Markdown("""
+        ### How to use:
+        1. Upload an M4A audiobook file
+        2. Set the desired segment length in seconds (default: 300 seconds = 5 minutes)
+        3. Click 'Convert' and wait for the process to complete
+        4. Download the converted MP3 files
+        """)
         
     return interface
 
