@@ -106,7 +106,7 @@ def process_file(file_obj, segment_time: int = 300):
     """Process a single file uploaded through the Gradio interface.
     
     Args:
-        file_obj: File object from Gradio (can be bytes or a file-like object)
+        file_obj: File object from Gradio (filepath string)
         segment_time: Time in seconds for each segment
         
     Returns:
@@ -114,8 +114,8 @@ def process_file(file_obj, segment_time: int = 300):
     """
     # This wrapper function is kept for compatibility
     # Progress handling is done in the actual implementation
-    if file_obj is None:
-        return [], "Please upload a file first", None, None
+    if file_obj is None or file_obj == "":
+        return [], "Please upload a file first", None
     
     try:
         # Use the last value from the generator
@@ -181,6 +181,11 @@ def create_interface():
         
         # Handle file conversion with progress updates and update UI
         def process_and_update_download_all(file_path, segment_time):
+            # Check if file is provided
+            if file_path is None:
+                # No file provided, show error message
+                return [], "Please upload a file first", gr.File(value=None, visible=False)
+                
             # Process the file and get results
             files, message, zip_path = process_file(file_path, segment_time)
             
